@@ -59,7 +59,7 @@ void to_lisp(int midi_data[3])
 	}
 	lisp_call += ")";
 #ifdef d_midi
-	std::cout << lisp_call << std::endl;
+	//std::cout << lisp_call << std::endl;
 #endif
 	lisp(lisp_call);
 }
@@ -100,6 +100,12 @@ int main(int argc, char* argv[])
 	for (unsigned int i=0; i!=feedback->getPortCount(); ++i)
 		if (feedback->getPortName(i) == feedbackName)
 			feedback->openPort(i);
+
+	// Send sysex message
+	std::vector<unsigned char> sysex = {
+		0xF0, 0x47, 0x00, 0x29, 0x60, 0x00, 0x04, 0x41/*mode byte*/, 0x08, 0x04, 0x01, 0xF7
+	};
+	feedback->sendMessage( &sysex );
 
 	done = false;
 	(void) signal(SIGINT, finish);

@@ -4,6 +4,7 @@
 (defparameter *active-table* (make-hash-table :test #'equal))
 (defparameter *output-binding-table* (make-hash-table))
 (defparameter *bpm* 180)
+(defparameter *last-function* 'red)
 
 (defun bind (binds)
   (loop for n in binds do
@@ -13,8 +14,8 @@
  ; (format t "feedback: ~a, ~a, ~a~%" channel note value))
 (defun send-feedback (channel note value)
   (send_feedback channel note value))
-;(defun send-midi (channel note value)
- ; (format t "~a, ~a, ~a~%" channel note value))
+(defun send-midi (channel note value)
+  (format t "~a, ~a, ~a~%" channel note value))
 (defun send-midi (channel note value)
   (send_midi channel note value))
 (defun look-up-control (name)
@@ -35,9 +36,12 @@
       red))
 (defmacro feedback (channel note value)
     `(send-feedback ,channel ,note ,(rgb->color value)))
-    
 ;;;___________________________________
 (defmacro simple (name midi-bind &body body)
+  `(midi-function ,name ,midi-bind
+     ,@body value))
+;;;___________________________________
+(defmacro pass (name midi-bind &body body)
   "make new passthrough list and store in function table with midi-bind as key"
   (let ((bind-list (look-up-control name)))
     (if bind-list
@@ -45,6 +49,17 @@
 	   (send-midi ,@bind-list value)
 	   ,@body)
 	(format t "ERROR: No binding found for ~a~%" name))))
+;;;___________________________________
+(defmacro toggle (name midi-bind on-form off-form &body body)
+    `(midi-function ,name ,midi-bind
+       (if x
+	    (progn
+	      ,off-form
+	      (setq x nil))
+	    (progn
+	      ,on-form
+	      (setq x t)))
+       ,@body value))
 ;;;___________________________________
 (defmacro multi (name midi-bind &body body)
   "bind multiple function calls with predefined values to the same midi-bind"
@@ -91,10 +106,11 @@
 		    ((eql i ,end))
 		    (send-feedback ,@(look-up-control fn) i)
 		  (sleep ,wait-time))))
-	      ,@body)))))
+	      ,@body value)))))
 
 
 (defun route (channel note &optional (value 0))
   (let ((fn (gethash (list channel note) *active-table*)))
     (if fn
-	(funcall (gethash (list channel note) *active-table*) value))))
+	(funcall fn value))
+    (setf *last-function* fn)))
