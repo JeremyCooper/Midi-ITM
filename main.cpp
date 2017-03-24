@@ -13,8 +13,10 @@
 #define d_midi
 std::string midiInName = "APC40 mkII 20:0";
 std::string midiOutName = "";
+std::string feedbackName = "APC40 mkII 20:0";
 std::vector<std::string> lisp_files = {
-	"midi-itm.lisp",
+	"midi-itm.lsp",
+	"output-bindings.lsp",
 	"declarations.lsp"
 };
 
@@ -29,17 +31,22 @@ cl_object lisp(const std::string& call) {
 }
 
 void send_midi(cl_object, cl_object, cl_object);
+void send_feedback(cl_object, cl_object, cl_object);
 void initialize(int argc, char **argv)
 {
 	cl_boot(argc, argv);
 	atexit(cl_shutdown);
 
 	// Run Lisp code
-	for (unsigned int i=0; i!=lisp_files.size(); ++i)
-		lisp("(load \"" + lisp_files[i] + "\")");
+//	for (unsigned int i=0; i!=lisp_files.size(); ++i)
+//		lisp("(load \"" + lisp_files[i] + "\")");
+	lisp("(load \"midi-itm.lsp\")");
+	lisp("(load \"output-bindings.lsp\")");
+	lisp("(load \"declarations.lsp\")");
 
 	// Make C++ functions available to Lisp
 	DEFUN("send_midi", send_midi, 3);
+	DEFUN("send_feedback", send_feedback, 3);
 }
 int z;
 std::string lisp_call;
@@ -51,12 +58,16 @@ void to_lisp(int midi_data[3])
 		lisp_call += std::to_string(midi_data[z]) + " ";
 	}
 	lisp_call += ")";
+#ifdef d_midi
+	std::cout << lisp_call << std::endl;
+#endif
 	lisp(lisp_call);
 }
 
 bool done;
 static void finish(int ignore) { done = true; }
 RtMidiOut *midiout;
+RtMidiOut *feedback;
 int main(int argc, char* argv[])
 {
 	// Bootstrap Lisp
@@ -65,16 +76,30 @@ int main(int argc, char* argv[])
 	// Initialize RtMidi
 	RtMidiIn *midiin = new RtMidiIn();
 	midiout = new RtMidiOut();
+	feedback = new RtMidiOut();
 	std::vector<unsigned char> message;
 	int nBytes, i;
 	int midi_data[3];
 
 	for (unsigned int i=0; i!=midiin->getPortCount(); ++i)
+	{
+#ifdef d_midi
+		std::cout << "In port: " << midiin->getPortName(i) << std::endl;
+#endif
 		if (midiin->getPortName(i) == midiInName)
 			midiin->openPort(i);
+	}
 	for (unsigned int i=0; i!=midiout->getPortCount(); ++i)
+	{
+#ifdef d_midi
+		std::cout << "Out port: " << midiout->getPortName(i) << std::endl;
+#endif
 		if (midiout->getPortName(i) == midiOutName)
 			midiout->openPort(i);
+	}
+	for (unsigned int i=0; i!=feedback->getPortCount(); ++i)
+		if (feedback->getPortName(i) == feedbackName)
+			feedback->openPort(i);
 
 	done = false;
 	(void) signal(SIGINT, finish);
@@ -107,17 +132,35 @@ int main(int argc, char* argv[])
 int i;
 #endif
 int channel, note, value;
-std::vector<unsigned char> _message(3);
+std::vector<unsigned char> midiout_message(3);
 void send_midi(cl_object _channel, cl_object _note, cl_object _value)
 {
-	_message[0] = fix(_channel);
-	_message[1] = fix(_note);
-	_message[2] = fix(_value);
-	midiout->sendMessage( &_message );
+	midiout_message[0] = fix(_channel);
+	midiout_message[1] = fix(_note);
+	midiout_message[2] = fix(_value);
+	midiout->sendMessage( &midiout_message );
 #ifdef d_midi
 			std::cout << "OUT: ";
 			for (i=0; i!=2; ++i)
-				std::cout << (int)_message[i] << ", ";
-			std::cout << (int)_message[i] << std::endl;
+				std::cout << (int)midiout_message[i] << ", ";
+			std::cout << (int)midiout_message[i] << std::endl;
+#endif
+}
+#ifdef d_midi
+int fb_i;
+#endif
+int fb_channel, fb_note, fb_value;
+std::vector<unsigned char> feedback_message(3);
+void send_feedback(cl_object _channel, cl_object _note, cl_object _value)
+{
+	feedback_message[0] = fix(_channel);
+	feedback_message[1] = fix(_note);
+	feedback_message[2] = fix(_value);
+	feedback->sendMessage( &feedback_message );
+#ifdef d_midi
+			std::cout << "FEEDBACK: ";
+			for (fb_i=0; fb_i!=2; ++fb_i)
+				std::cout << (int)feedback_message[fb_i] << ", ";
+			std::cout << (int)feedback_message[fb_i] << std::endl;
 #endif
 }
