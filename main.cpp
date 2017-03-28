@@ -10,10 +10,10 @@
 #include <ecl/ecl.h>
 #include "RtMidi.h"
 
-#define d_midi
-std::string midiInName = "APC40 mkII 20:0";
+//#define d_midi
+std::string midiInName = "APC40 mkII";
 std::string midiOutName = "";
-std::string feedbackName = "APC40 mkII 20:0";
+std::string feedbackName = "APC40 mkII";
 std::vector<std::string> lisp_files = {
 	"midi-itm.lsp",
 	"output-bindings.lsp",
@@ -89,14 +89,15 @@ int main(int argc, char* argv[])
 		if (midiin->getPortName(i) == midiInName)
 			midiin->openPort(i);
 	}
-	for (unsigned int i=0; i!=midiout->getPortCount(); ++i)
+/*	for (unsigned int i=0; i!=midiout->getPortCount(); ++i)
 	{
 #ifdef d_midi
 		std::cout << "Out port: " << midiout->getPortName(i) << std::endl;
 #endif
 		if (midiout->getPortName(i) == midiOutName)
 			midiout->openPort(i);
-	}
+	}*/
+	midiout->openVirtualPort("midi-itm");
 	for (unsigned int i=0; i!=feedback->getPortCount(); ++i)
 		if (feedback->getPortName(i) == feedbackName)
 			feedback->openPort(i);
