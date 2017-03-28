@@ -1,0 +1,5 @@
+(defun route-midi (channel note value)
+  (format t "channel: ~a~%" channel)
+  (format t "note: ~a~%" note)
+  (format t "value: ~a~%" value)
+  (send_midi channel note value))

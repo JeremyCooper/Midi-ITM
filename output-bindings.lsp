@@ -1,4 +1,11 @@
-(gen-macro-calls
+(defmacro output-bindings (&body binds)
+  `(progn
+     ,@(loop for n in binds do
+	    (setf (gethash (first n) *output-binding-table*) (list (second n) (third n)))
+	  collect
+	    `(pass ,(first n) (0 0)))))
+
+(output-bindings
  (red 144 1)
  (green 176 2)
  (blue 144 3)
@@ -30,4 +37,3 @@
  (layer-shake-2 177 10)
  (layer-shake-activate-3 144 15)
  (layer-shake-3 178 11))
-(call-new-macros)

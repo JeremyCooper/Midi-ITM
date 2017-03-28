@@ -10,15 +10,6 @@
 (defparameter *current-layer* 0)
 (defparameter *layer* "")
 
-(defmacro gen-macro-calls (&body binds)
-  `(defun call-new-macros ()
-     ,@(loop for n in binds do
-	    (setf (gethash (first n) *output-binding-table*) (list (second n) (third n)))
-	  collect
-	    `(pass ,(first n) (0 0)))))
-(defun groups (groups)
-  (loop for n in groups do
-       (setf (gethash (first n) *groups-table*) (second n))))
 (defun send-feedback (channel note value)
   (format t "feedback: ~a, ~a, ~a~%" channel note value))
 (defun send-feedback (channel note value)
