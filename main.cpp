@@ -1,3 +1,4 @@
+//#define d_midi
 /*
  "Routes midi input to Lisp, reveals 
   function for midi output to Lisp"
@@ -10,13 +11,13 @@
 #include <ecl/ecl.h>
 #include "RtMidi.h"
 
-//#define d_midi
 std::string midiInName = "APC40 mkII";
 std::string midiOutName = "";
 std::string feedbackName = "APC40 mkII";
 std::vector<std::string> lisp_files = {
 	"midi-itm.lsp",
 	"output-bindings.lsp",
+	"colors.lsp",
 	"declarations.lsp"
 };
 

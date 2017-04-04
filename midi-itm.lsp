@@ -16,10 +16,12 @@
   (send_feedback channel note value))
 (defun send-midi (channel note value)
   (format t "~a, ~a, ~a~%" channel note value))
-;(defun send-midi (channel note value)
-;  (send_midi channel note value))
+(defun send-midi (channel note value)
+  (send_midi channel note value))
 (defun look-up-control (name)
-  (gethash name *output-binding-table*))
+ ; (if (functionp (function name))
+      (gethash name *output-binding-table*))
+ ;     (gethash (eval name) *output-binding-table*)))
 (defun store-function (name key new-function)
   (format t "~%Creating and storing: ~a~%" name)
   (setf (gethash name *function-table*) new-function)
@@ -41,6 +43,7 @@
       (+ red green blue)))
 (defmacro feedback (channel note value)
     `(send-feedback ,channel ,note ,(rgb->color value)))
+
 ;;;___________________________________
 (defmacro simple (name midi-bind &body body)
   `(midi-function ,name ,midi-bind
@@ -54,6 +57,15 @@
 	   (send-midi ,@bind-list value)
 	   ,@body)
 	(format t "ERROR: No binding found for ~a~%" name))))
+;;;___________________________________
+(defmacro piano (name midi-bind on-form off-form &body body)
+  `(midi-function ,name ,midi-bind
+     ,on-form ,@body value)
+  (let ((off-midi-bind (list (first midi-bind) (- 16 (second midi-bind))))
+	(off-name (intern (concatenate 'string (symbol-name name) "-OFF"))))
+    `(midi-function ,off-name ,off-midi-bind
+       ,off-form ,@body value)))
+
 ;;;___________________________________
 (defmacro toggle (name midi-bind on-form off-form &body body)
     `(midi-function ,name ,midi-bind
@@ -95,33 +107,32 @@
       (let ((distance (abs (- start end)))
 	    (length (* (* 4 bars) (/ *bpm* 60))))
 	(let ((wait-time (/ (/ 60 length) distance)))
-	  ;;before auto defun is generated, create new mutex 'name
-	  ;;(let ((lock (bordeaux-threads::make-lock (symbol-name name))))
 	  `(midi-function ,name ,midi-bind
-	     ;;(bordeaux-threads::acquire-lock lock)
-	     ;;(format t "auto thread spawned~%lock name: ~a~%" ,(symbol-name name))
 	     ;;determine wait-time here. so subsequent triggers re-quantize
 	     ;;to current bpm
 	     ;;this will require restructuring the algebra so that bpm
 	     ;;is the last variable needed
-	     
+
 	     (let ((thread-id-G! (gensym)))
 	       (setf (gethash ',name *threads*) thread-id-G!)
-	       (format t "THREAD ID: ~a~%" thread-id-G!)
-	       ;;aquire lock 'name (wait-p NIL)
+	       (format t "THRZZZZZZEAD ID: ~a~%" thread-id-G!)
+	       (format t "FN: ~a~%" ,fn)
+	       (format t "control: ~a~%" (look-up-control ,fn))
 	       (bordeaux-threads::make-thread
 		(lambda ()
-		  (send-feedback 144 0 20)
 		  (do ((i ,start (+ i ,iterator)))
 		      ((eql i ,end))
 		  (if (not (eq thread-id-G!(gethash ',name *threads*)))
 		      (progn
-			(format t "~%~%exiting thread~%~%")
 			(return)))
-		    (send-feedback ,@(look-up-control fn) i)
-		    (sleep ,wait-time))
-		  (send-feedback 144 0 100)))
-					;(bordeaux-threads::release-lock ,lock)))
+		    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		    (let* ((control-values (look-up-control ,fn))
+			   (feedback-values (cons i (cons (cadr control-values) (cons (car control-values) nil))))
+			   (feedback-values (nreverse feedback-values)))
+		      (apply #'send-feedback feedback-values))
+		    ;;(send-feedback (look-up-control ,fn) i)
+		    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		    (sleep ,wait-time))))
 	       ,@body value))))))
 
 

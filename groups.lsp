@@ -9,7 +9,7 @@
 	    `(gen-group-send ,(first n) ,(second n)))))
 
 (groups
-  (layer-0-effects (12 20 28 36))
-  (layer-1-effects (13 21 29 37))
-  (layer-2-effects (14 22 30 38))
-  (layer-3-effects (15 23 31 39)))
+  (group-effects-0 (12 20 28 36))
+  (group-effects-1 (13 21 29 37))
+  (group-effects-2 (14 22 30 38))
+  (group-effects-3 (15 23 31 39)))
