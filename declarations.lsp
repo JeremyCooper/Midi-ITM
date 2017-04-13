@@ -8,10 +8,13 @@
 (defvar *effects-fg* 117)
 (defvar *effects-highlight* 44)
 
-(defparameter *selected-effect-0* 'layer-trace-0)
-(defparameter *selected-effect-1* 'layer-trace-1)
-(defparameter *selected-effect-2* 'layer-trace-2)
-(defparameter *selected-effect-3* 'layer-trace-3)
+(gen-variants ((0 0) (1 1) (2 2) (3 3))
+  (defparameter *selected-effect-^* 'layer-trace-^))
+(gen-variants ((0 0) (1 1) (2 2) (3 3))
+  (defparameter *saved-clip-^* (list 0 0)))
+
+(defparameter *selected-clip-x* 0)
+(defparameter *selected-clip-y* 0)
 
 (defun reset-layer-display ()
   (loop for x in '(148 149 150 151) do
@@ -28,72 +31,77 @@
 (defun reset-effect-display-3 ()
   (loop for x in '(23 31 39) do
        (send-feedback 144 x *effects-bg*)))
-(format t "============================")
 
-(pass layer-trace-0 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-trace-activate-0 0)
-	(send-feedback 144 36 *effects-fg*))
-      (progn
-	(layer-trace-activate-0 127)
-	(send-feedback 144 36 *effects-highlight*))))
-(pass layer-trace-1 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-trace-activate-1 0)
-	(send-feedback 144 37 *effects-fg*))
-      (progn
-	(layer-trace-activate-1 127)
-	(send-feedback 144 37 *effects-highlight*))))
-(pass layer-trace-2 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-trace-activate-2 0)
-	(send-feedback 144 38 *effects-fg*))
-      (progn
-	(layer-trace-activate-2 127)
-	(send-feedback 144 38 *effects-highlight*))))
-(pass layer-trace-3 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-trace-activate-3 0)
-	(send-feedback 144 39 *effects-fg*))
-      (progn
-	(layer-trace-activate-3 127)
-	(send-feedback 144 39 *effects-highlight*))))
-(pass layer-shake-0 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-shake-activate-0 0)
-	(send-feedback 144 28 *effects-fg*))
-      (progn
-	(layer-shake-activate-0 127)
-	(send-feedback 144 28 *effects-highlight*))))
-(pass layer-shake-1 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-shake-activate-1 0)
-	(send-feedback 144 29 *effects-fg*))
-      (progn
-	(layer-shake-activate-1 127)
-	(send-feedback 144 29 *effects-highlight*))))
-(pass layer-shake-2 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-shake-activate-2 0)
-	(send-feedback 144 30 *effects-fg*))
-      (progn
-	(layer-shake-activate-2 127)
-	(send-feedback 144 30 *effects-highlight*))))
-(pass layer-shake-3 (0 0)
-  (if (< value 2)
-      (progn
-	(layer-shake-activate-3 0)
-	(send-feedback 144 31 *effects-fg*))
-      (progn
-	(layer-shake-activate-3 127)
-	(send-feedback 144 31 *effects-highlight*))))
+(defun string->cat-call (str &rest params)
+  (loop for n in params do
+       (setf str (concatenate 'string
+			      (string-upcase str)
+			      (write-to-string n))))
+  (funcall (intern str)))
+
+(defun select-new-clip (x y)
+  (if (eql x -1)
+      (if (eql *selected-clip-x* 0)
+	  (return-from select-new-clip)))
+  (if (eql y -1)
+      (if (eql *selected-clip-y* 0)
+	  (return-from select-new-clip)))
+  (setf *selected-clip-x* (+ *selected-clip-x* x))
+  (setf *selected-clip-y* (+ *selected-clip-y* y))
+  (string->cat-call "clip-"
+		    *selected-clip-x*
+		     '-
+		     *selected-clip-y*))
+
+(defmacro gen-variants (variants &body body)
+  `(progn
+     ,@(loop for n in variants collect
+	    (let ((i 0))
+	      (read-from-string
+	       (with-output-to-string (s)
+		 (map 'nil
+		      #'(lambda (x)
+			  (if (char= x #\^)
+			      (progn
+				(format s "~a" (nth i n)) 
+				(incf i))
+			      (format s "~a" x)))
+		      (write-to-string (first body)))))))))
+
+;;generate activate-saved-clip-0 through activate-saved-clip-3
+(gen-variants ((0 16 0 0) (1 17 1 1) (2 18 2 2) (3 19 3 3))
+  (simple activate-saved-clip-^ (144 ^)
+    (string->cat-call "select-clip-"
+		      (first *saved-clip-^*)
+		      '-
+		      (second *saved-clip-^*))))
+
+(simple actually-select-clip (144 7))
+(simple clip-select-x-+ (144 2)
+  (select-new-clip 1 0))
+(simple clip-select-x-- (144 0)
+  (select-new-clip -1 0))
+(simple clip-select-y-+ (144 9)
+  (select-new-clip 0 1))
+(simple clip-select-y-- (144 1)
+  (select-new-clip 0 -1))
+
+(gen-variants ((trace 0 trace 0 36 trace 0 36)
+	       (trace 1 trace 1 37 trace 1 37)
+	       (trace 2 trace 2 38 trace 2 38)
+	       (trace 3 trace 3 39 trace 3 39)
+	       (shake 0 shake 0 28 shake 0 28)
+	       (shake 1 shake 1 29 shake 1 29)
+	       (shake 2 shake 2 30 shake 2 30)
+	       (shake 3 shake 3 31 shake 3 31))
+  (pass layer-^-^ (0 0)
+    (if (< value 2)
+	(progn
+	  (layer-^-activate-^ 0)
+	  (send-feedback 144 ^ *effects-fg*))
+	(progn
+	  (layer-^-activate-^ 127)
+	  (send-feedback 144 ^ *effects-highlight*)))))
 
 (rebind layer-effect0-set-0 (0 0)
   (176 52 layer-trace-0))
@@ -203,4 +211,3 @@
       (if (< value 10)
 	  (send-feedback 144 7 0)
 	  (send-feedback 144 7 23)))
-;;(load "testoutput.lsp")

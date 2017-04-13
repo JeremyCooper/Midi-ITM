@@ -1,4 +1,4 @@
-(require 'ecl-quicklisp)
+;(require 'ecl-quicklisp)
 (ql:quickload 'bordeaux-threads)
 (defparameter *function-table* (make-hash-table))
 (defparameter *active-table* (make-hash-table :test #'equal))
@@ -12,12 +12,12 @@
 
 (defun send-feedback (channel note value)
   (format t "feedback: ~a, ~a, ~a~%" channel note value))
-(defun send-feedback (channel note value)
-  (send_feedback channel note value))
+;(defun send-feedback (channel note value)
+;  (send_feedback channel note value))
 (defun send-midi (channel note value)
   (format t "~a, ~a, ~a~%" channel note value))
-(defun send-midi (channel note value)
-  (send_midi channel note value))
+;(defun send-midi (channel note value)
+;  (send_midi channel note value))
 (defun look-up-control (name)
  ; (if (functionp (function name))
       (gethash name *output-binding-table*))
@@ -54,7 +54,7 @@
   (let ((bind-list (look-up-control name)))
     (if bind-list
 	`(midi-function ,name ,midi-bind
-	   (send-midi ,@bind-list value)
+	   (send-feedback ,@bind-list value)
 	   ,@body)
 	(format t "ERROR: No binding found for ~a~%" name))))
 ;;;___________________________________
@@ -107,7 +107,8 @@
       (let ((distance (abs (- start end)))
 	    (length (* (* 4 bars) (/ *bpm* 60))))
 	(let ((wait-time (/ (/ 60 length) distance)))
-	  `(midi-function ,name ,midi-bind
+	 `(let ((control-values (look-up-control ,fn)))
+	  (midi-function ,name ,midi-bind
 	     ;;determine wait-time here. so subsequent triggers re-quantize
 	     ;;to current bpm
 	     ;;this will require restructuring the algebra so that bpm
@@ -117,7 +118,7 @@
 	       (setf (gethash ',name *threads*) thread-id-G!)
 	       (format t "THRZZZZZZEAD ID: ~a~%" thread-id-G!)
 	       (format t "FN: ~a~%" ,fn)
-	       (format t "control: ~a~%" (look-up-control ,fn))
+	       (format t "control: ~a~%" control-values)
 	       (bordeaux-threads::make-thread
 		(lambda ()
 		  (do ((i ,start (+ i ,iterator)))
@@ -126,14 +127,15 @@
 		      (progn
 			(return)))
 		    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-		    (let* ((control-values (look-up-control ,fn))
-			   (feedback-values (cons i (cons (cadr control-values) (cons (car control-values) nil))))
+		    (let* ;;((control-values (look-up-control fn))
+			((feedback-values
+			  (cons i (cons (cadr control-values) (cons (car control-values) nil))))
 			   (feedback-values (nreverse feedback-values)))
 		      (apply #'send-feedback feedback-values))
 		    ;;(send-feedback (look-up-control ,fn) i)
 		    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		    (sleep ,wait-time))))
-	       ,@body value))))))
+	       ,@body value)))))))
 
 
 (defun route (channel note &optional (value 0))

@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 			to_lisp(midi_data);
 		}
 
-		sleep(0.1);
+		sleep(0.3);
 	}
 
 	delete midiin;
