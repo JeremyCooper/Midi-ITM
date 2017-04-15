@@ -1,5 +1,6 @@
-;(require 'ecl-quicklisp)
+(require 'ecl-quicklisp)
 (ql:quickload 'bordeaux-threads)
+(defparameter *mode* 0)
 (defparameter *function-table* (make-hash-table))
 (defparameter *active-table* (make-hash-table :test #'equal))
 (defparameter *output-binding-table* (make-hash-table))
@@ -12,12 +13,12 @@
 
 (defun send-feedback (channel note value)
   (format t "feedback: ~a, ~a, ~a~%" channel note value))
-;(defun send-feedback (channel note value)
-;  (send_feedback channel note value))
+(defun send-feedback (channel note value)
+  (send_feedback channel note value))
 (defun send-midi (channel note value)
   (format t "~a, ~a, ~a~%" channel note value))
-;(defun send-midi (channel note value)
-;  (send_midi channel note value))
+(defun send-midi (channel note value)
+  (send_midi channel note value))
 (defun look-up-control (name)
  ; (if (functionp (function name))
       (gethash name *output-binding-table*))
@@ -43,6 +44,23 @@
       (+ red green blue)))
 (defmacro feedback (channel note value)
     `(send-feedback ,channel ,note ,(rgb->color value)))
+
+(defmacro gen-variants (variants &body body)
+  `(progn
+     ,@(loop for n in variants collect
+	    (let ((z nil))
+	      (read-from-string
+	       (with-output-to-string (s)
+		 (map 'nil
+		      #'(lambda (x)
+			  (if (char= #\^ x)
+			      (setf z t)
+			      (if z
+				  (progn
+				    (princ (nth (digit-char-p x) n) s)
+				    (setf z nil))
+				  (princ x s))))
+		      (write-to-string (first body) :escape nil))))))))
 
 ;;;___________________________________
 (defmacro simple (name midi-bind &body body)
@@ -137,8 +155,66 @@
 		    (sleep ,wait-time))))
 	       ,@body value)))))))
 
-
 (defun route (channel note &optional (value 0))
+  (case *mode*
+    (0 (basic channel note value))
+    (1 (save-clip channel note))
+    (2 (effect-auto channel note))
+    (3 (fader-auto channel note))
+    (4 (multi-trigger channel note value))))
+
+(defun effect-auto (channel note)
+  (let ((fn-str (symbol-name (gethash (list channel note) *active-table*))))
+    (format t "~a~%" fn-str)
+    (cond ((string= fn-str "AUTO-EFFECT-0")
+	   (progn
+	     (create-effect-auto-0)
+	     (setf *mode* 0)))
+	  ((string= fn-str "AUTO-EFFECT-1")
+	   (progn
+	     (create-effect-auto-1)
+	     (setf *mode* 0)))
+	  ((string= fn-str "AUTO-EFFECT-2")
+	   (progn
+	     (create-effect-auto-2)
+	     (setf *mode* 0)))
+	  ((string= fn-str "AUTO-EFFECT-3")
+	   (progn
+	     (create-effect-auto-3)
+	     (setf *mode* 0))))))
+(defun fader-auto (channel note)
+  (let ((fn-str (symbol-name (gethash (list channel note) *active-table*))))
+    (format t "~a~%" fn-str)
+    (cond ((string= fn-str "AUTO-FADER-0")
+	   (progn
+	     (create-fader-auto-0)
+	     (setf *mode* 0)))
+	  ((string= fn-str "AUTO-FADER-1")
+	   (progn
+	     (create-fader-auto-1)
+	     (setf *mode* 0)))
+	  ((string= fn-str "AUTO-FADER-2")
+	   (progn
+	     (create-fader-auto-2)
+	     (setf *mode* 0)))
+	  ((string= fn-str "AUTO-FADER-3")
+	   (progn
+	     (create-fader-auto-3)
+	     (setf *mode* 0))))))
+(defun multi-trigger (channel note value)
+  (let ((fn-str (symbol-name (gethash (list channel note) *active-table*))))
+    (if (search "MODE-MULTI-TRIGGER" fn-str) 1 value)))
+(defun save-clip (channel note)
+  (let ((fn-str (symbol-name (gethash (list channel note) *active-table*))))
+    (if (search "ACTIVATE-SAVED-CLIP-" fn-str)
+	(let* ((clip-num (elt fn-str (1- (length fn-str))))
+	       (saved-clip-name (concatenate 'string
+					     "*SAVED-CLIP-"
+					     (list clip-num)
+					     "*")))
+	  (print (setf (symbol-value (intern saved-clip-name)) (list *selected-clip-x* *selected-clip-y*)))
+	  (setf *mode* 0)))))
+(defun basic (channel note &optional (value 0))
   (let ((fn (gethash (list channel note) *active-table*)))
     (if fn
 	(funcall fn value))

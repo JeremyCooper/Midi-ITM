@@ -11,9 +11,11 @@
 #include <ecl/ecl.h>
 #include "RtMidi.h"
 
-std::string midiInName = "APC40 mkII";
+//#define d_midi
+
+std::string midiInName = "APC40 mkII 20:0";
 std::string midiOutName = "";
-std::string feedbackName = "APC40 mkII";
+std::string feedbackName = "APC40 mkII 20:0";
 std::vector<std::string> lisp_files = {
 	"midi-itm.lsp",
 	"output-bindings.lsp",
