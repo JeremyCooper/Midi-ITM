@@ -10,6 +10,8 @@
 (defparameter *last-function* 'red)
 (defparameter *current-layer* 0)
 (defparameter *layer* "")
+(defparameter *selected-clip-x* 0)
+(defparameter *selected-clip-y* 0)
 
 (defun send-feedback (channel note value)
   (format t "feedback: ~a, ~a, ~a~%" channel note value))

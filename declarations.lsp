@@ -16,9 +16,6 @@
 (gen-variants ((0) (1) (2) (3))
   (defparameter *saved-clip-^0* (list 0 0)))
 
-(defparameter *selected-clip-x* 0)
-(defparameter *selected-clip-y* 0)
-
 (defun reset-layer-display ()
   (loop for x in '(148 149 150 151) do
        (send-feedback x 51 0)))
@@ -56,22 +53,8 @@
 		     '-
 		     *selected-clip-y*))
 
-;;(defmacro gen-variants (variants &body body)
-;;  `(progn
-;;     ,@(loop for n in variants collect
-;;	    (let ((z nil))
-;;	      (read-from-string
-;;	       (with-output-to-string (s)
-;;		 (map 'nil
-;;		      #'(lambda (x)
-;;			  (if (char= #\^ x)
-;;			      (setf z t)
-;;			      (if z
-;;				  (progn
-;;				    (princ (nth (digit-char-p x) n) s)
-;;				    (setf z nil))
-;;				  (princ x s))))
-;;		      (write-to-string (first body) :escape nil))))))))
+(simple communicate_to_sdl (176 14)
+  (communicate 0 0 0 value))
 
 (simple actually-select-clip (144 8)
   (string->cat-call "select-clip-"
@@ -131,6 +114,14 @@
 	  (layer-^0-activate-^1 127)
 	  (send-feedback 144 ^2 *effects-highlight*)))))
 
+;;layer-fader*-set-*
+;;layer-fader0-set-0
+(gen-variants ((0 0 opacity 4)
+	       (1 0 opacity 5)
+	       (2 0 opacity 6)
+	       (3 0 opacity 7))
+  (rebind layer-fader^1-set-^0 (0 0)
+    (176 ^3 layer-^2-^0)))
 ;;layer-effect*-set-*
 ;;layer-effect0-set-0
 (gen-variants ((0 0 trace 52)

@@ -8,14 +8,24 @@
 //#include <cstdlib>
 #include <signal.h>
 #include <vector>
+#include <thread>
 #include <ecl/ecl.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_Image.h>
+
+#include "midi-itmConfig.h"
+
 #include "RtMidi.h"
+
+bool done;
+#include "graphics/main_.cpp"
+#include "graphics/api.cpp"
 
 //#define d_midi
 
-std::string midiInName = "APC40 mkII 20:0";
+std::string midiInName = "APC40 mkII";
 std::string midiOutName = "";
-std::string feedbackName = "APC40 mkII 20:0";
+std::string feedbackName = "APC40 mkII";
 std::vector<std::string> lisp_files = {
 	"midi-itm.lsp",
 	"output-bindings.lsp",
@@ -50,6 +60,7 @@ void initialize(int argc, char **argv)
 	// Make C++ functions available to Lisp
 	DEFUN("send_midi", send_midi, 3);
 	DEFUN("send_feedback", send_feedback, 3);
+	DEFUN("communicate", communicate, 4);
 }
 int z;
 std::string lisp_call;
@@ -67,12 +78,13 @@ void to_lisp(int midi_data[3])
 	lisp(lisp_call);
 }
 
-bool done;
 static void finish(int ignore) { done = true; }
 RtMidiOut *midiout;
 RtMidiOut *feedback;
 int main(int argc, char* argv[])
 {
+	fprintf(stdout,"Current programming task: %s\n",
+			Current_Programming_Task);
 	// Bootstrap Lisp
 	initialize(argc, argv);
 
@@ -114,6 +126,32 @@ int main(int argc, char* argv[])
 	done = false;
 	(void) signal(SIGINT, finish);
 
+	/*
+	 * SDL_INIT
+	 */
+	if (SDL_Init(SDL_INIT_VIDEO) != 0){
+		log_sdl_error(std::cout, "SDL_Init");
+		return 1;
+	}
+	SDL_Window *window = SDL_CreateWindow("midi-itm", 100/*?*/, 100, SCREEN_WIDTH,
+			SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	if (window == nullptr){
+		log_sdl_error(std::cout, "CreateWindow");
+		SDL_Quit();
+		return 1;
+	}
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
+			SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (renderer == nullptr){
+		log_sdl_error(std::cout, "CreateRenderer");
+		cleanup(window);
+		SDL_Quit();
+		return 1;
+	}
+	/*
+	 */
+	std::thread render_thread(&sdl_mainloop, renderer);
+	render_thread.detach();
 	while (!done) {
 		midiin->getMessage( &message );
 		nBytes = message.size();
@@ -130,9 +168,17 @@ int main(int argc, char* argv[])
 #endif
 			to_lisp(midi_data);
 		}
-
-		sleep(0.3);
+		float sleeptime = 0.3;
+		sleep(sleeptime);
 	}
+
+	/*
+	 * SDL_CLEANUP
+	 */
+	sleep(1); //wait for render_thread to die
+	cleanup(renderer, window);
+	SDL_Quit();
+
 
 	delete midiin;
 	delete midiout;
