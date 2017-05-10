@@ -10,23 +10,22 @@
 #include <vector>
 #include <thread>
 #include <ecl/ecl.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_Image.h>
 
-#include "midi-itmConfig.h"
+//#include "midi-itmConfig.h"
 
 #include "RtMidi.h"
 
 bool done;
-#include "graphics/main_.cpp"
-#include "graphics/api.cpp"
+#include "../graphics/main_.cpp"
+#include "../graphics/api.cpp"
 
 //#define d_midi
 
-std::string midiInName = "APC40 mkII";
-std::string midiOutName = "";
-std::string feedbackName = "APC40 mkII";
-std::vector<std::string> lisp_files = {
+const std::string midiInName = "APC40 mkII";
+const std::string midiOutName = "";
+const std::string feedbackName = "APC40 mkII";
+const std::string lispDirectory = "../lisp/";
+const std::vector<std::string> lisp_files = {
 	"midi-itm.lsp",
 	"output-bindings.lsp",
 	"colors.lsp",
@@ -51,11 +50,8 @@ void initialize(int argc, char **argv)
 	atexit(cl_shutdown);
 
 	// Run Lisp code
-//	for (unsigned int i=0; i!=lisp_files.size(); ++i)
-//		lisp("(load \"" + lisp_files[i] + "\")");
-	lisp("(load \"midi-itm.lsp\")");
-	lisp("(load \"output-bindings.lsp\")");
-	lisp("(load \"declarations.lsp\")");
+	for (unsigned int i=0; i!=lisp_files.size(); ++i)
+		lisp("(load \"" + lispDirectory + lisp_files[i] + "\")");
 
 	// Make C++ functions available to Lisp
 	DEFUN("send_midi", send_midi, 3);
@@ -83,8 +79,7 @@ RtMidiOut *midiout;
 RtMidiOut *feedback;
 int main(int argc, char* argv[])
 {
-	fprintf(stdout,"Current programming task: %s\n",
-			Current_Programming_Task);
+	//fprintf(stdout,"Current programming task: %s\n", Task);
 	// Bootstrap Lisp
 	initialize(argc, argv);
 
@@ -126,31 +121,7 @@ int main(int argc, char* argv[])
 	done = false;
 	(void) signal(SIGINT, finish);
 
-	/*
-	 * SDL_INIT
-	 */
-	if (SDL_Init(SDL_INIT_VIDEO) != 0){
-		log_sdl_error(std::cout, "SDL_Init");
-		return 1;
-	}
-	SDL_Window *window = SDL_CreateWindow("midi-itm", 100/*?*/, 100, SCREEN_WIDTH,
-			SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-	if (window == nullptr){
-		log_sdl_error(std::cout, "CreateWindow");
-		SDL_Quit();
-		return 1;
-	}
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
-			SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (renderer == nullptr){
-		log_sdl_error(std::cout, "CreateRenderer");
-		cleanup(window);
-		SDL_Quit();
-		return 1;
-	}
-	/*
-	 */
-	std::thread render_thread(&sdl_mainloop, renderer);
+	std::thread render_thread(&mainloop);
 	render_thread.detach();
 	while (!done) {
 		midiin->getMessage( &message );
@@ -176,9 +147,6 @@ int main(int argc, char* argv[])
 	 * SDL_CLEANUP
 	 */
 	sleep(1); //wait for render_thread to die
-	cleanup(renderer, window);
-	SDL_Quit();
-
 
 	delete midiin;
 	delete midiout;

@@ -1,3 +1,4 @@
+(setf *fasl-directory* "/fasl")
 (require 'ecl-quicklisp)
 (ql:quickload 'bordeaux-threads)
 (defparameter *mode* 0)

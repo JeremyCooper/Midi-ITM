@@ -1,32 +1,20 @@
 class Layer {
 private:
-	SDL_Texture* tex;
-	SDL_Renderer* ren;
+	// ...??? how to grab a pointer to the sub-array?
 	float (*control_state)[10][10];
-	SDL_Rect r;
-	~Layer () {
-		cleanup(tex);
-	}
+	int x, y;
+	~Layer () {}
 public:
-	Layer(SDL_Texture* tex_, SDL_Renderer* ren_,
-			float (*input_state)[10][10])
-		:tex(tex_), ren(ren_), control_state(input_state) {
-		r.x = 0;
-		r.y = 0;
-		r.w = 200;
-		r.h = 200;
+	Layer(float (*input_state)[10][10])
+		:control_state(input_state) {
 	}
 	void update () {
-		r.w = control_state[0][0][0] * SCREEN_WIDTH;
-		SDL_SetRenderTarget(ren, tex);
-		SDL_SetRenderDrawColor(ren, 0, 0, 0, 0);
-		SDL_RenderClear(ren);
+		// ...???? how to use that pointer
+		y = *control_state[0][0];
+		x = control_state[0][0][0] * SCREEN_WIDTH;
 	}
 	void draw () {
-		SDL_SetRenderDrawColor(ren, *control_state[0][0], 255, 0, 255);
-		SDL_RenderFillRect(ren, &r);
 	}
 	void render() {
-		SDL_RenderCopy(ren, tex, NULL, NULL);
 	}
 };
