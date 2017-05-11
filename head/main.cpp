@@ -1,36 +1,47 @@
-//#define d_midi
-/*
- "Routes midi input to Lisp, reveals 
-  function for midi output to Lisp"
-*/
 #include <iostream>
 #include <unistd.h>
-//#include <cstdlib>
-#include <signal.h>
 #include <vector>
 #include <thread>
 #include <ecl/ecl.h>
-
 //#include "midi-itmConfig.h"
-
 #include "RtMidi.h"
-
+#include "cinder/app/App.h"
+#include "cinder/app/RendererGl.h"
+#include "cinder/gl/gl.h"
 bool done;
-#include "../graphics/main_.cpp"
+//#include "../graphics/main_.cpp"
 #include "../graphics/api.cpp"
-
 //#define d_midi
+using namespace ci;
+using namespace ci::app;
 
+/*
+ * These belong in a config.h
+ */
 const std::string midiInName = "APC40 mkII";
-const std::string midiOutName = "";
 const std::string feedbackName = "APC40 mkII";
-const std::string lispDirectory = "../lisp/";
+const std::string lispDirectory = "/Users/jeremycooper/Projects/Lisp+C/midi-itm/lisp/";
 const std::vector<std::string> lisp_files = {
-	"midi-itm.lsp",
-	"output-bindings.lsp",
-	"colors.lsp",
-	"declarations.lsp"
+        "midi-itm.lsp",
+        "output-bindings.lsp",
+        "colors.lsp",
+        "declarations.lsp"
 };
+
+void midi_loop();
+void initialize_lisp(int argc, char **argv);
+
+class MidiItmApp : public App {
+	public:
+		void setup() {
+            std::thread midi_thread(&midi_loop);
+            midi_thread.detach();
+		}
+		void resize() {}
+		void update() {}
+		void draw() {}
+};
+CINDER_APP(MidiItmApp, RendererGl(RendererGl::Options().msaa(16)))
 
 // A macro to create a DEFUN abstraction in C++
 #define DEFUN(name, fun, args) \
@@ -44,7 +55,7 @@ cl_object lisp(const std::string& call) {
 
 void send_midi(cl_object, cl_object, cl_object);
 void send_feedback(cl_object, cl_object, cl_object);
-void initialize(int argc, char **argv)
+void initialize_lisp(int argc, char **argv)
 {
 	cl_boot(argc, argv);
 	atexit(cl_shutdown);
@@ -74,88 +85,71 @@ void to_lisp(int midi_data[3])
 	lisp(lisp_call);
 }
 
-static void finish(int ignore) { done = true; }
+static void finish() { done = true; }
 RtMidiOut *midiout;
 RtMidiOut *feedback;
-int main(int argc, char* argv[])
-{
-	//fprintf(stdout,"Current programming task: %s\n", Task);
-	// Bootstrap Lisp
-	initialize(argc, argv);
+void midi_loop() {
+    int argc = 0;
+    char* s = NULL;
+    char**argv = &s;
+    initialize_lisp(argc, argv);
 
-	// Initialize RtMidi
-	RtMidiIn *midiin = new RtMidiIn();
-	midiout = new RtMidiOut();
-	feedback = new RtMidiOut();
-	std::vector<unsigned char> message;
-	int nBytes, i;
-	int midi_data[3];
+    RtMidiIn *midiin = new RtMidiIn();
+    midiout = new RtMidiOut();
+    feedback = new RtMidiOut();
+    std::vector<unsigned char> message;
+    unsigned int i;
+    unsigned long nBytes;
+    int midi_data[3];
 
-	for (unsigned int i=0; i!=midiin->getPortCount(); ++i)
-	{
+    for (i=0; i!=midiin->getPortCount(); ++i)
+    {
 #ifdef d_midi
-		std::cout << "In port: " << midiin->getPortName(i) << std::endl;
+        std::cout << "In port: " << midiin->getPortName(i) << std::endl;
 #endif
-		if (midiin->getPortName(i) == midiInName)
-			midiin->openPort(i);
-	}
-/*	for (unsigned int i=0; i!=midiout->getPortCount(); ++i)
-	{
+        if (midiin->getPortName(i) == midiInName)
+            midiin->openPort(i);
+    }
+    midiout->openVirtualPort("midi-itm");
+    for (i=0; i!=feedback->getPortCount(); ++i)
+        if (feedback->getPortName(i) == feedbackName)
+            feedback->openPort(i);
+
+    // Send sysex message
+    std::vector<unsigned char> sysex = {
+            0xF0, 0x47, 0x00, 0x29, 0x60, 0x00, 0x04, 0x41/*mode byte*/, 0x08, 0x04, 0x01, 0xF7
+    };
+    feedback->sendMessage( &sysex );
+
+    done = false;
+    (void) signal(SIGINT, finish);
+    while (!done) {
+        midiin->getMessage( &message );
+        nBytes = message.size();
+        for (i=0; i!=nBytes; ++i)
+            if (i < 4)
+                midi_data[i] = (int)message[i];
+        if (nBytes > 0)
+        {
 #ifdef d_midi
-		std::cout << "Out port: " << midiout->getPortName(i) << std::endl;
-#endif
-		if (midiout->getPortName(i) == midiOutName)
-			midiout->openPort(i);
-	}*/
-	midiout->openVirtualPort("midi-itm");
-	for (unsigned int i=0; i!=feedback->getPortCount(); ++i)
-		if (feedback->getPortName(i) == feedbackName)
-			feedback->openPort(i);
-
-	// Send sysex message
-	std::vector<unsigned char> sysex = {
-		0xF0, 0x47, 0x00, 0x29, 0x60, 0x00, 0x04, 0x41/*mode byte*/, 0x08, 0x04, 0x01, 0xF7
-	};
-	feedback->sendMessage( &sysex );
-
-	done = false;
-	(void) signal(SIGINT, finish);
-
-	std::thread render_thread(&mainloop);
-	render_thread.detach();
-	while (!done) {
-		midiin->getMessage( &message );
-		nBytes = message.size();
-		for (i=0; i!=nBytes; ++i)
-			if (i < 4)
-				midi_data[i] = (int)message[i];
-		if (nBytes > 0)
-		{
-#ifdef d_midi
-			std::cout << "IN: ";
+            std::cout << "IN: ";
 			for (i=0; i!=2; ++i)
 				std::cout << midi_data[i] << ", ";
 			std::cout << midi_data[i] << std::endl;
 #endif
-			to_lisp(midi_data);
-		}
-		float sleeptime = 0.3;
-		sleep(sleeptime);
-	}
+            to_lisp(midi_data);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
-	/*
-	 * SDL_CLEANUP
-	 */
-	sleep(1); //wait for render_thread to die
-
-	delete midiin;
-	delete midiout;
-	return EXIT_SUCCESS;
+    sleep(1);
+    delete midiin;
+    delete midiout;
+    delete feedback;
 }
 #ifdef d_midi
 int i;
 #endif
-int channel, note, value;
 std::vector<unsigned char> midiout_message(3);
 void send_midi(cl_object _channel, cl_object _note, cl_object _value)
 {
@@ -173,7 +167,6 @@ void send_midi(cl_object _channel, cl_object _note, cl_object _value)
 #ifdef d_midi
 int fb_i;
 #endif
-int fb_channel, fb_note, fb_value;
 std::vector<unsigned char> feedback_message(3);
 void send_feedback(cl_object _channel, cl_object _note, cl_object _value)
 {

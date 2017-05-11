@@ -1,3 +1,6 @@
-a.out
-makefile
-*.fasl
+bin/
+build/
+cmake/
+cmake-build-debug/
+fasl/
+.idea/

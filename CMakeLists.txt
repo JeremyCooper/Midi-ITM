@@ -1,15 +1,13 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.0 FATAL_ERROR)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 project (Midi-Itm)
 
 set(CMAKE_MODULE_PATH
 	${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
-set(BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
+set(BIN_DIR ${Midi-Itm_SOURCE_DIR}/bin)
 
 set(CMAKE_CXX_FLAGS
-	"${CMAKE_CXX_FLAGS} -Wall -O -pedantic -std=c++11")
-
-#set (CMAKE_CXX_STANDARD 11)
-#set (CMAKE_CXX_STANDARD_REQUIRED ON)
+	"${CMAKE_CXX_FLAGS} -Wall -O -pedantic -lecl -std=c++11")
 
 set (Current_Programming_Task \"cmakefiles\")
 
@@ -21,11 +19,28 @@ include_directories("${PROJECT_BINARY_DIR}")
 include_directories(${PROJECT_SOURCE_DIR}/head)
 
 find_package(ECL REQUIRED)
-include_directories(${SDL2_INCLUDE_DIR})
-add_executable ( Midi-Itm head/main.cpp )
+find_package(RTMIDI REQUIRED)
+#include_directories(${ECL_INCLUDE_DIR} ${RTMIDI_INCLUDE_DIR})
+#add_executable ( Midi-Itm head/main.cpp )
 
-set (MYLIB -lrtmidi -lecl)
-target_link_libraries( Midi-Itm ${MYLIB})
+set (LIBS ${ECL_LIBRARIES} ${RTMIDI_LIBRARIES})
+set (INCLUDES ${ECL_INCLUDE_DIR} ${RTMIDI_INCLUDE_DIR})
+#target_link_libraries( Midi-Itm ${LIBS})
+
+get_filename_component(CINDER_PATH "/Users/jeremycooper/builds/cinder" ABSOLUTE)
+get_filename_component(APP_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+
+include("${CINDER_PATH}/proj/cmake/modules/cinderMakeApp.cmake")
+ci_make_app(
+	APP_NAME	"Midi-Itm"
+	CINDER_PATH	${CINDER_PATH}
+	SOURCES		${APP_PATH}/head/main.cpp
+	INCLUDES	${INCLUDES}
+	LIBRARIES	${LIBS}
+)
+
+
+#install (TARGETS Midi-Itm DESTINATION ${BIN_DIR})
 
 #include_directories("${PROJECT_SOURCE_DIR}"}
 #add_subdirectory (graphics)
