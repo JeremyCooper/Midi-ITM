@@ -1,6 +1,5 @@
 bin/
 build/
-cmake/
 cmake-build-debug/
 fasl/
 .idea/
