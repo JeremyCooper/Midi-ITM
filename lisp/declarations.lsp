@@ -198,3 +198,4 @@
     (if (< value 10)
 	(send-feedback 144 ^2 0)
 	(send-feedback 144 ^2 23))))
+(format t "Done loading declarations.lsp")

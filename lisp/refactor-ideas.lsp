@@ -1,21 +1,67 @@
+:normalize t ;;0-127 => 0-1
+:printvalue t ;;print value at end of function
+:default-color 140 ;;idle color
+:press-color 20 ;;keydown color
+:toggle-off-color 100 ;;color of toggle button in "off" state
+:knob-behavior :fill ;;for the apc40s alternate knob modes
+:on-value 127 ;;value to send on keydown
+:off-value 1) ;;value to send on keyup
+
+(defparameter *control-defaults* (make-hash-table :test #'equal))
+(defparameter *function-table* (make-hash-table))
+(defparameter c-tag1 nil)
+(defparameter c-tag2 nil)
+(defun init-defaults ()
+  (setf (gethash "knob" *control-defaults*)
+	'((tag1 140) (tag2 50) (tag3 1) (tag4 t) (tag5 nil))))
+(defmacro setup-function (form)
+  ;;append functionality to the beginning and end of `form
+  ;;according to the configurations chosen :normalize, :on-value, :color, etc
+  `(format t "~a~a~%" tag1 tag2))
+(defmacro with-custom-settings (&body body)
+  `(let ((tag1 (if c-tag1 c-tag1 tag1))
+	 (tag2 (if c-tag2 c-tag2 tag2)))
+	  ,@body))
 (defmacro knob (name form &optional channel note)
-  (if (not name)
-	;;don't register in function-table
-	;;effectively pointless but leaving here
-	;;for testing purposes. Could be used to
-	;;add initial control functionality if
-	;;note and channel are supplied. If bound
-	;;over they are lost.
-	t
-	;;else, obviously add to function table
-	;;and subsequently add to active-table if
-	;;the channel and note have been provided
-	form)
-  (setf (gethash name *value-table*) value))
+  `(let ,(gethash "knob" *control-defaults*)
+     ;;are custom settings bound?
+     ;;if so, override lets with
+     ;;the used custom settings
+     (with-custom-settings
+       (if (not ',name)
+	   ;;don't register in function-table
+	   ;;effectively pointless but leaving here
+	   ;;for testing purposes. Could be used to
+	   ;;add initial control functionality if
+	   ;;note and channel are supplied. If bound
+	   ;;over they are lost.
+	   (setf (gethash (list ,channel ,note) *active-table*)
+		 (lambda (value)
+		   (setup-function ,form)))
+	   ;;else, obviously add to function table
+	   ;;and subsequently add to active-table if
+	   ;;the channel and note have been provided
+	   (if (and ,channel ,note)
+	       (midi-function ,name (,channel ,note)
+		 (setup-function ,form))
+	       (midi-function ,name (0 0)
+		 (setup-function ,form)))))))
+
+;;(defmacro control-settings (options form)
+;;  (dotimes (i (length options))
+
 ;;is there a way to copy just a reference to the function-table value
 ;;in the active-table efficiently? ie. not strings
 (knob
   "EffectFader1"
+  144 7
+  (progn
+	(print 100)
+	(dotimes (i 5)
+	  (format "~a~%" i))))
+(knob
+  "EffectFader1"
+  nil nil
   (progn
 	(print 100)
 	(dotimes (i 5)

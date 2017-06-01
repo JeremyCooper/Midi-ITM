@@ -1,20 +1,20 @@
 cmake_minimum_required (VERSION 3.0 FATAL_ERROR)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 project (Midi-Itm)
+set (Current_Programming_Task \"cinder integration\")
 
 set(CMAKE_MODULE_PATH
 	${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 set(BIN_DIR ${Midi-Itm_SOURCE_DIR}/bin)
 
 set(CMAKE_CXX_FLAGS
-	"${CMAKE_CXX_FLAGS} -Wall -O -pedantic -lecl -std=c++11")
-
-set (Current_Programming_Task \"cmakefiles\")
+	"${CMAKE_CXX_FLAGS} -Wall -O -pedantic -std=c++11")
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/head/midi-itmConfig.h.in"
-	"${PROJECT_BINARY_DIR}/head/midi-itmConfig.h"
+	"${PROJECT_BINARY_DIR}/midi-itmConfig.h"
 	)
+include_directories("${PROJECT_SOURCE_DIR}")
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories(${PROJECT_SOURCE_DIR}/head)
 
@@ -42,5 +42,4 @@ ci_make_app(
 
 #install (TARGETS Midi-Itm DESTINATION ${BIN_DIR})
 
-#include_directories("${PROJECT_SOURCE_DIR}"}
 #add_subdirectory (graphics)

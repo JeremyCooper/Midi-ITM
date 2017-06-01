@@ -1,4 +1,10 @@
-int communicate(int layer, int control, int param, int value) {
+//
+// Created by Jeremy Cooper on 6/1/17.
+//
+
+#include "api.h"
+
+static int GFX_Api::communicate(int layer, int control, int param, int value) {
 	layer = fix(layer);
 	control = fix(control);
 	param = fix(param);

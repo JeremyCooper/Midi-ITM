@@ -1,16 +1,17 @@
 #include <iostream>
-#include <unistd.h>
+//#include <stdio.h>
+//#include <unistd.h>
 #include <vector>
 #include <thread>
 #include <ecl/ecl.h>
-//#include "midi-itmConfig.h"
+#include "midi-itmConfig.h"
 #include "RtMidi.h"
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
 bool done;
-//#include "../graphics/main_.cpp"
-#include "../graphics/api.cpp"
+#include "graphics/gfx.h"
+#include "../graphics/api.h"
 //#define d_midi
 using namespace ci;
 using namespace ci::app;
@@ -34,14 +35,21 @@ void initialize_lisp(int argc, char **argv);
 class MidiItmApp : public App {
 	public:
 		void setup() {
+            fprintf(stdout, "Current Task: %s\n", Task);
             std::thread midi_thread(&midi_loop);
             midi_thread.detach();
+            gfx_setup();
 		}
 		void resize() {}
 		void update() {}
-		void draw() {}
+		void draw() {
+            gl::clear();
+        }
 };
-CINDER_APP(MidiItmApp, RendererGl(RendererGl::Options().msaa(16)))
+CINDER_APP(MidiItmApp, RendererGl(RendererGl::Options().msaa(16)), [&](App::Settings *settings) {
+    settings->setWindowSize(800, 600);
+    settings->setFrameRate(60.0f);
+})
 
 // A macro to create a DEFUN abstraction in C++
 #define DEFUN(name, fun, args) \
@@ -67,7 +75,7 @@ void initialize_lisp(int argc, char **argv)
 	// Make C++ functions available to Lisp
 	DEFUN("send_midi", send_midi, 3);
 	DEFUN("send_feedback", send_feedback, 3);
-	DEFUN("communicate", communicate, 4);
+	DEFUN("communicate", GFX_Api::communicate, 4);
 }
 int z;
 std::string lisp_call;
@@ -85,7 +93,7 @@ void to_lisp(int midi_data[3])
 	lisp(lisp_call);
 }
 
-static void finish() { done = true; }
+static void finish(int) { done = true; }
 RtMidiOut *midiout;
 RtMidiOut *feedback;
 void midi_loop() {
@@ -109,6 +117,8 @@ void midi_loop() {
 #endif
         if (midiin->getPortName(i) == midiInName)
             midiin->openPort(i);
+        //RtMidiIn::RtMidiCallback callback_fn;
+        //midiin->setCallback(callback_fn);
     }
     midiout->openVirtualPort("midi-itm");
     for (i=0; i!=feedback->getPortCount(); ++i)
@@ -153,9 +163,9 @@ int i;
 std::vector<unsigned char> midiout_message(3);
 void send_midi(cl_object _channel, cl_object _note, cl_object _value)
 {
-	midiout_message[0] = fix(_channel);
-	midiout_message[1] = fix(_note);
-	midiout_message[2] = fix(_value);
+	midiout_message[0] = (unsigned char)fix(_channel);
+	midiout_message[1] = (unsigned char)fix(_note);
+	midiout_message[2] = (unsigned char)fix(_value);
 	midiout->sendMessage( &midiout_message );
 #ifdef d_midi
 			std::cout << "OUT: ";
@@ -170,9 +180,9 @@ int fb_i;
 std::vector<unsigned char> feedback_message(3);
 void send_feedback(cl_object _channel, cl_object _note, cl_object _value)
 {
-	feedback_message[0] = fix(_channel);
-	feedback_message[1] = fix(_note);
-	feedback_message[2] = fix(_value);
+	feedback_message[0] = (unsigned char)fix(_channel);
+	feedback_message[1] = (unsigned char)fix(_note);
+	feedback_message[2] = (unsigned char)fix(_value);
 	feedback->sendMessage( &feedback_message );
 #ifdef d_midi
 			std::cout << "FEEDBACK: ";
