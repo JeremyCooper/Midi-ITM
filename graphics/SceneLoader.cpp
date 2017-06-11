@@ -4,9 +4,3 @@
 
 #include "SceneLoader.h"
 
-void SceneLoader::loadScene(std::string sceneName) {
-    mScene = Scene();
-}
-void SceneLoader::unLoadScene() {
-    delete mScene;
-}

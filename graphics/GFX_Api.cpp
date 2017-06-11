@@ -2,7 +2,7 @@
 // Created by Jeremy Cooper on 6/1/17.
 //
 
-#include "api.h"
+#include "GFX_Api.h"
 
 static int GFX_Api::communicate(int layer, int control, int param, int value) {
 	layer = fix(layer);

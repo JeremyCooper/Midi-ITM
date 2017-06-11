@@ -4,14 +4,13 @@
 #include <vector>
 #include <thread>
 #include <ecl/ecl.h>
-#include "midi-itmConfig.h"
 #include "RtMidi.h"
 #include "cinder/app/App.h"
+#include "cinder/app/AppBase.h"
 #include "cinder/app/RendererGl.h"
-#include "cinder/gl/gl.h"
-bool done;
-#include "graphics/gfx.h"
-#include "../graphics/api.h"
+bool done; //this belongs in singleton class?
+#include "midi-itmConfig.h"
+#include "graphics/Graphics.h"
 //#define d_midi
 using namespace ci;
 using namespace ci::app;
@@ -33,18 +32,33 @@ void midi_loop();
 void initialize_lisp(int argc, char **argv);
 
 class MidiItmApp : public App {
-	public:
-		void setup() {
-            fprintf(stdout, "Current Task: %s\n", Task);
-            std::thread midi_thread(&midi_loop);
-            midi_thread.detach();
-            gfx_setup();
-		}
-		void resize() {}
-		void update() {}
-		void draw() {
-            gl::clear();
-        }
+private:
+    std::vector<gl::TextureRef> pTextures;
+    Graphics *graphics = new Graphics();
+public:
+    void setup() {
+        fprintf(stdout, "Current Task: %s\n", Task);
+
+        graphics->setup();
+
+        //std::thread midi_thread(&midi_loop);
+        //midi_thread.detach();
+    }
+    void resize() {}
+
+    void update() {
+        graphics->update();
+    }
+    void draw() {
+        gl::clear();
+        //any UI here...
+        graphics->draw();
+        graphics->publish();
+    }
+    void keyDown(KeyEvent event) {
+        delete graphics;
+        quit();
+    }
 };
 CINDER_APP(MidiItmApp, RendererGl(RendererGl::Options().msaa(16)), [&](App::Settings *settings) {
     settings->setWindowSize(800, 600);
@@ -75,7 +89,7 @@ void initialize_lisp(int argc, char **argv)
 	// Make C++ functions available to Lisp
 	DEFUN("send_midi", send_midi, 3);
 	DEFUN("send_feedback", send_feedback, 3);
-	DEFUN("communicate", GFX_Api::communicate, 4);
+	//DEFUN("communicate", GFX_Api::communicate, 4);
 }
 int z;
 std::string lisp_call;
@@ -96,6 +110,7 @@ void to_lisp(int midi_data[3])
 static void finish(int) { done = true; }
 RtMidiOut *midiout;
 RtMidiOut *feedback;
+//TODO: End midi_thread gracefully
 void midi_loop() {
     int argc = 0;
     char* s = NULL;

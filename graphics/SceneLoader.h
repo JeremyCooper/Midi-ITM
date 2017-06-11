@@ -11,9 +11,28 @@
 class SceneLoader {
 private:
     Scene *mScene;
+    bool sceneLoaded;
 public:
-    void loadScene(std::string sceneName);
-    void unLoadScene();
+    SceneLoader() :sceneLoaded(false) {}
+    template <typename T> Scene* loadScene() {
+        try {
+            if (sceneLoaded)
+                unLoadScene();
+            sceneLoaded = true;
+            return mScene = new T;
+        } catch (...) {
+            std::cout << "Scene failed to load" << std::endl;
+        }
+        return nullptr;
+    }
+    void unLoadScene() { delete mScene; }
+    Scene* returnScene() {
+        if (sceneLoaded) {
+            return mScene;
+        } else {
+            return nullptr;
+        }
+    }
 };
 
 

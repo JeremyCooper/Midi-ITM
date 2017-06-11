@@ -85,7 +85,6 @@
 	(off-name (intern (concatenate 'string (symbol-name name) "-OFF"))))
     `(midi-function ,off-name ,off-midi-bind
        ,off-form ,@body value)))
-
 ;;;___________________________________
 (defmacro toggle (name midi-bind on-form off-form &body body)
     `(midi-function ,name ,midi-bind
