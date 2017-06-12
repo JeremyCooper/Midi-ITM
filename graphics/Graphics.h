@@ -13,15 +13,17 @@
 class Graphics {
 private:
     std::vector<Layer> mLayers;
-    //syphonClient mClientSyphon;
-    syphonServer mServer;
+    std::vector<Scene*> vScenePtr;
+    Scene* tmpPtr;
 public:
     Graphics();
     //~Graphics();
     void setup();
+    void updateScenePointer(int i);
     void update();
     void draw();
     void publish();
+    void sendEvent(int i, int e);
 };
 
 

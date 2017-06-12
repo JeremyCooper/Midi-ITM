@@ -3,6 +3,8 @@
 //
 
 #include "Layer.h"
+#include "Graphics.h"
+
 using namespace ci;
 
 
@@ -38,7 +40,15 @@ void Layer::publish() {
     if (pScene != nullptr)
         mServer.publishTexture(mSceneLoader.returnScene()->publish()->getColorTexture(), false);
 }
+Scene* Layer::get() {
+    return mSceneLoader.returnScene();
+}
 void Layer::changeScene(int sceneID) {
+    /*
+     * TODO:
+     * Going to need to call Graphics::updateScenePointer(int i)
+     * when the scene is changed or events will go to nullptr
+     */
     switch (sceneID) {
         case 0:
             pScene = mSceneLoader.loadScene<FlowerScene>();
@@ -58,6 +68,7 @@ void Layer::changeScene(int sceneID) {
         default:
             break;
     }
-    if (pScene != nullptr)
-        pScene->setup();
+    if (pScene == nullptr)
+        return;
+    pScene->setup();
 }

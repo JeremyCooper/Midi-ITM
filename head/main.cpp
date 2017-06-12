@@ -55,13 +55,14 @@ public:
         graphics->draw();
         graphics->publish();
     }
-    void keyDown(KeyEvent event) {
-        delete graphics;
-        quit();
+    void keyDown(KeyEvent e) {
+        if (e.getCode() == KeyEvent::KEY_SPACE) {
+            graphics->sendEvent(0, 123);
+        }
     }
 };
 CINDER_APP(MidiItmApp, RendererGl(RendererGl::Options().msaa(16)), [&](App::Settings *settings) {
-    settings->setWindowSize(800, 600);
+    settings->setWindowSize(WIDTH, HEIGHT);
     settings->setFrameRate(60.0f);
 })
 

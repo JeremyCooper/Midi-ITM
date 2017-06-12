@@ -23,6 +23,7 @@ public:
     virtual void setup() {}
     virtual void update() = 0;
     virtual void draw() = 0;
+    virtual void event(int e) { std::cout << "Event " << e << "consumed" << std::endl; }
     ci::gl::FboRef publish() { return mFbo; }
 };
 
@@ -59,11 +60,15 @@ public:
 };
 #include "graphics/Helpers/ThrowbackScene.h"
 class ThrowbackScene : public Scene {
+private:
+    Strands* mStrands;
+    std::vector<ci::ColorA> palette;
 public:
     ThrowbackScene();
     ~ThrowbackScene() {}
     void update();
     void draw();
+    void event(int e);
 };
 class NerdScene : public Scene {
 public:

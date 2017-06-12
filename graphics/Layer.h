@@ -23,6 +23,7 @@ public:
     void update();
     void draw();
     void publish();
+    Scene* get();
     void changeScene(int);
 };
 

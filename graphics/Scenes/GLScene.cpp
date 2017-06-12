@@ -19,6 +19,7 @@ void GLScene::update() {
 }
 void GLScene::draw() {
     mFbo->bindFramebuffer();
+
     gl::clear();
     gl::enableDepthRead();
     gl::enableDepthWrite();
@@ -39,12 +40,13 @@ void GLScene::draw() {
         float r = rel * spiralRadius;
         vec3 offset(r * cos(angle), y / 2, r * sin(angle));
 
-        gl::pushModelMatrix();
+        gl::ScopedModelMatrix scpModelMtx;
+        //gl::pushModelMatrix();
         gl::translate(offset);
         gl::scale(vec3(boxSize, y, boxSize));
         gl::color(Color(CM_HSV, rel, 1, 1));
         mBox->draw();
-        gl::popModelMatrix();
+        //gl::popModelMatrix();
     }
     mFbo->unbindFramebuffer();
 }

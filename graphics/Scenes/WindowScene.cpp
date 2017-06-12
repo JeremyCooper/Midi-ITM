@@ -3,13 +3,14 @@
 //
 
 #include "graphics/Scene.h"
+#include "cinder/App/AppBase.h"
 //#include "cinder/GeomIo.h"
 using namespace ci;
 
 Windows::Windows(int num)
         :num(num) {
     margins = new Margin(0, 0, 0, 0);
-    int max_size = WIDTH/num;
+    //int max_size = WIDTH/num;
     for (int i=0; i!=num; ++i) {
         windows.push_back(
                 Window(i * 50, 0, 30, HEIGHT, 0, 1)
@@ -50,6 +51,7 @@ void WindowScene::update() {
 void WindowScene::draw() {
     mFbo->bindFramebuffer();
     gl::clear(Color(0, 0, 0));
+    gl::setMatricesWindow( app::getWindowSize() );
     windows->draw();
     mFbo->unbindFramebuffer();
 }

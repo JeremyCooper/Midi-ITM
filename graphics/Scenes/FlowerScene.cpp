@@ -3,9 +3,8 @@
 //
 
 #include "graphics/Scene.h"
-#include "graphics/Helpers/FlowerScene.h"
 #include "cinder/Rand.h"
-//#include "Helpers/TriangleHelpers.h"
+#include "cinder/App/AppBase.h"
 using namespace ci;
 
 
@@ -79,6 +78,7 @@ void FlowerScene::update() {
 void FlowerScene::draw() {
     mFbo->bindFramebuffer();
     gl::clear(Color(0, 0, 0));
+    gl::setMatricesWindow( app::getWindowSize() );
     flower->draw();
     mFbo->unbindFramebuffer();
 }
